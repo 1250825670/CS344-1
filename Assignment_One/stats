@@ -9,11 +9,17 @@
 # supplied by a file or stdin. The program accepts a flag argument
 # which specifies if the calculations are done per row or per column.
 
+TMP=tmp$$
+
+trap "rm -f $TMP*; exit 1" INT HUP TERM
+
+trap "rm -f $TMP*" EXIT
+
 instructions () {
 	echo "$0 {-rows | -cols} [filename]" 1>&2
 }
 
-if [[ $# > 2 ]]; then
+if [[ $# < 1 || $# > 2 ]]; then
 	instructions
 	exit 1
 fi
@@ -43,5 +49,8 @@ if [[ $1 == -r* ]]; then
 		echo "$average"
 	done < "${2:-/dev/stdin}"
 elif [[ $1 == -c* ]]; then
+	printf "Average:\n"
 
-fi	
+
+	printf "Median:\n"
+fi
