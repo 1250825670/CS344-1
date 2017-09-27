@@ -9,6 +9,7 @@
 # supplied by a file or stdin. The program accepts a flag argument
 # which specifies if the calculations are done per row or per column.
 
+# Storing tmp file variable with pid appended
 TMP=tmp$$
 
 trap "rm -f $TMP*; exit 1" INT HUP TERM
@@ -37,20 +38,40 @@ if [[ $1 == -r* ]]; then
 		sum=0
 		count=0
 		average=0
+		median=0
 
-		for i in $line
+		sorted_line=$(echo $line | tr " " "\n" | sort -g) 
+
+		for i in $sorted_line
 		do
 			num=$i
 			count=`expr $count + 1`
 			sum=`expr $sum + $num`
 		done
 
+		mid_point=`expr $[ $count / 2 ] + 1`
+
+		for num in $sorted_line
+		do
+			median=$num
+			if [ $mid_point -le 1 ] 
+			then
+				break
+			else
+				mid_point=`expr $mid_point - 1`
+			fi
+		done
+
 		average=`expr $sum / $count`
-		echo "$average"
+		printf "$average\t$median\n"
 	done < "${2:-/dev/stdin}"
 elif [[ $1 == -c* ]]; then
 	printf "Average:\n"
-
+	
 
 	printf "Median:\n"
+
+else
+	instructions
+	exit 1
 fi
