@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# Program 1
+# Author: Alexander Miranda
+# Due Date: 10/09/2017
+# Term: Fall 2017
+
+# This program will compute the average and median from numbers
+# supplied by a file or stdin. The program accepts a flag argument
+# which specifies if the calculations are done per row or per column.
+
+instructions () {
+	echo "$0 {-rows | -cols} [filename]" 1>&2
+}
+
+if [[ $# > 2 ]]; then
+	instructions
+	exit 1
+fi
+
+if [[ ! -z $2 && ! -r $2 ]]; then
+	echo "$0: cannot read $2" 1>&2
+	exit 1
+fi
+
+if [[ $1 == -r* ]]; then
+	printf "Average\tMedian\n"
+
+	while read line
+	do
+		sum=0
+		count=0
+		average=0
+
+		for i in $line
+		do
+			num=$i
+			count=`expr $count + 1`
+			sum=`expr $sum + $num`
+		done
+
+		average=`expr $sum / $count`
+		echo "$average"
+	done < "${2:-/dev/stdin}"
+elif [[ $1 == -c* ]]; then
+
+fi	
