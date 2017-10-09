@@ -10,13 +10,19 @@
 # which specifies if the calculations are done per row or per column.
 
 # Storing tmp file variable with pid appended
+# Also storing temporary file names for average, median and final output 
+# respectively
 TMP=tmp$$
+avgFile=avg$$
+medFile=med$$
+final=final$$
 
 # Traps for the various ways the program can terminate
 trap "rm -f $TMP*; exit 1" INT HUP TERM
 
 trap "rm -f $TMP*" EXIT
 
+# Function that outputs the proper use documentation to the user's terminal
 instructions () {
 	echo "$0 {-rows | -cols} [filename]" 1>&2
 }
@@ -68,20 +74,12 @@ if [[ $1 == -r* ]]; then
 			fi
 		done
 
-		average=`expr $sum / $count`
+		average=`expr $[$sum + $[$count / 2]] / $count`
 		printf "$average\t$median\n"
 	done < "${2:-/dev/stdin}"
 elif [[ $1 == -c* ]]; then
-	
-	column_count=$(egrep ".{$(expand -t 1 ${2:-/dev/stdin} | wc -L)}" ${2:-dev/stdin} | head -n 1 | wc -w )
+	column_num=
 
-	for (( i=1; i <= column_count; i++)); do
-		while read line; do
-			local num=$(expand -t 1 <<< $line | cut -d$' ' -f$i )
-			[ $(wc -w <<< $line) -ge $i ] && echo $num >> "${TMP}"
-		done < "${2:-/dev/stdin}"
-		
-	done
 # Output the instructions for how to use the script if the user does not
 # pass the proper flags and/or arguments
 else
