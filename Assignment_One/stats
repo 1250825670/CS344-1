@@ -12,6 +12,7 @@
 # Storing tmp file variable with pid appended
 TMP=tmp$$
 
+# Traps for the various ways the program can terminate
 trap "rm -f $TMP*; exit 1" INT HUP TERM
 
 trap "rm -f $TMP*" EXIT
@@ -32,10 +33,13 @@ if [[ ! -z $2 && ! -r $2 ]]; then
 	exit 1
 fi
 
+# Checks if the user wants the file/input to be parsed by rows
 if [[ $1 == -r* ]]; then
 	printf "Average\tMedian\n"
 
-	while read line
+	# While loop to go line by line through the passed in input
+	# checking if a new line exists to continue the iteration
+	while read line || [ -n "$line" ]
 	do
 		sum=0
 		count=0
@@ -78,6 +82,8 @@ elif [[ $1 == -c* ]]; then
 		done < "${2:-/dev/stdin}"
 		
 	done
+# Output the instructions for how to use the script if the user does not
+# pass the proper flags and/or arguments
 else
 	instructions
 	exit 1
