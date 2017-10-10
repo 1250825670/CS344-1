@@ -13,9 +13,6 @@
 # Also storing temporary file names for average, median and final output 
 # respectively
 TMP=tmp$$
-avgFile=avg$$
-medFile=med$$
-final=final$$
 
 # Traps for the various ways the program can terminate
 trap "rm -f $TMP*; exit 1" INT HUP TERM
@@ -82,41 +79,67 @@ if [[ $1 == -r* ]]; then
 		printf "$average\t$median\n"
 	done < "${2:-/dev/stdin}"
 elif [[ $1 == -c* ]]; then
-	
+
+	# Initializing variables and arrays for averages and median values
+	count=1
+	number_columns=$(head -1 ${2:-/dev/stdin} | wc -w)
 	avg_arr=()
 	med_arr=()
 
-	row_count=$(cat ${2:-/dev/stdin} | wc -l)
-	column_count=$(head -n 1 ${2:-/dev/stdin} | wc -w)
-
-	i=1
-
-	while [ "$i" -le "$column_count" ]
+	# Converting the columns into rows that are written into a temporary file
+	while [ "$count" -le "$number_columns" ]
 	do
-		sorted_column=($(cut -f $i < ${2:-/dev/stdin} | tr " " "\n" | sort -n | tr "\n" " "))
-		printf "${sorted_column[@]}\n"
+		cut -f $count ${2:-/dev/stdin} | tr "\n" "\t" >> $TMP
+		echo "" >> $TMP
+		count=`expr $count + 1`
+	done
+
+	# Copy of the row summing and median finding logic from the row block above
+	while read line || [ -n "$line" ]
+	do
 		sum=0
-		for j in ${sorted_column[@]}
+		count=0
+		average=0
+		median=0
+
+		sorted_line=$(echo $line | tr " " "\n" | sort -g) 
+
+		# Loop to sum the numbers on each row
+		for i in $sorted_line
 		do
-			num=$j
+			num=$i
+			count=`expr $count + 1`
 			sum=`expr $sum + $num`
 		done
 
-		average=`expr $[$sum + $[$row_count / 2]] / $row_count`
+		# Calculation for the median index of the sorted row
+		mid_point=`expr $[ $count / 2 ] + 1`
+
+		# Loop to grab the median of the sorted row
+		for num in $sorted_line
+		do
+			median=$num
+			if [ $mid_point -le 1 ] 
+			then
+				break
+			else
+				mid_point=`expr $mid_point - 1`
+			fi
+		done
+
+		# Calculating average so that the result is rounded up when necessary
+		average=`expr $[$sum + $[$count / 2]] / $count`
+		# Adding the terms to the average and median arrays so they can be output inline
 		avg_arr+=($average)
-
-		mid_point=`expr $[ $row_count / 2 ] + 1`
-		median=${sorted_column[$mid_point]}
-
 		med_arr+=($median)
-		i=`expr $i + 1`
-	done
+	done < "$TMP"
 
+	# Outputting the averages and medians inline to the user
 	printf "Averages:\n"
 	for num in "${avg_arr[@]}"; do
 		printf "$num \t"
 	done
-	printf "\nMedian:\n"
+	printf "\nMedians:\n"
 	for num in "${med_arr[@]}"; do
 		printf "$num \t"
 	done
