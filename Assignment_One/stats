@@ -54,6 +54,7 @@ if [[ $1 == -r* ]]; then
 
 		sorted_line=$(echo $line | tr " " "\n" | sort -g) 
 
+		# Loop to sum the numbers on each row
 		for i in $sorted_line
 		do
 			num=$i
@@ -61,8 +62,10 @@ if [[ $1 == -r* ]]; then
 			sum=`expr $sum + $num`
 		done
 
+		# Calculation for the median index of the sorted row
 		mid_point=`expr $[ $count / 2 ] + 1`
 
+		# Loop to grab the median of the sorted row
 		for num in $sorted_line
 		do
 			median=$num
@@ -74,11 +77,50 @@ if [[ $1 == -r* ]]; then
 			fi
 		done
 
+		# Calculating average so that the result is rounded up when necessary
 		average=`expr $[$sum + $[$count / 2]] / $count`
 		printf "$average\t$median\n"
 	done < "${2:-/dev/stdin}"
 elif [[ $1 == -c* ]]; then
-	column_num=
+	
+	avg_arr=()
+	med_arr=()
+
+	row_count=$(cat ${2:-/dev/stdin} | wc -l)
+	column_count=$(head -n 1 ${2:-/dev/stdin} | wc -w)
+
+	i=1
+
+	while [ "$i" -le "$column_count" ]
+	do
+		sorted_column=($(cut -f $i < ${2:-/dev/stdin} | tr " " "\n" | sort -n | tr "\n" " "))
+		printf "${sorted_column[@]}\n"
+		sum=0
+		for j in ${sorted_column[@]}
+		do
+			num=$j
+			sum=`expr $sum + $num`
+		done
+
+		average=`expr $[$sum + $[$row_count / 2]] / $row_count`
+		avg_arr+=($average)
+
+		mid_point=`expr $[ $row_count / 2 ] + 1`
+		median=${sorted_column[$mid_point]}
+
+		med_arr+=($median)
+		i=`expr $i + 1`
+	done
+
+	printf "Averages:\n"
+	for num in "${avg_arr[@]}"; do
+		printf "$num \t"
+	done
+	printf "\nMedian:\n"
+	for num in "${med_arr[@]}"; do
+		printf "$num \t"
+	done
+	printf "\n"
 
 # Output the instructions for how to use the script if the user does not
 # pass the proper flags and/or arguments
