@@ -149,8 +149,6 @@ void PopulateRoomArray()
 */
 void UpdateKeyAndValue(char * keyStr, char * valueStr)
 {
-    int EOLpos = 0;
-
     strtok(keyStr, ":");
     strcpy(valueStr, strtok(NULL, ""));
     valueStr[strlen(valueStr) - 1] = '\0';
@@ -252,7 +250,7 @@ void GenerateRooms()
  * 
  * returns: the index of the starting room, will return -1 if it was not found
 */
-int LocateStartRoomPos(){
+int LocateStartRoomIndex(){
     for(int i =0; i < MAX_ADVENTURE_ROOM_COUNT; i++){ // for each room
         if(roomArray[i].roomType == START_ROOM){ 
             return i;
@@ -333,7 +331,7 @@ int CreateNewThread()
 /**
  * Method that outputs the path the user took in the game
 */
-void printStepPath(int * pathTaken, int totalSteps)
+void OutputStepsTaken(int * pathTaken, int totalSteps)
 {
     for (int i = 0; i < totalSteps + 1; i++) {
         printf("%s\n", roomArray[pathTaken[i]].name);
@@ -354,7 +352,7 @@ void GameStart()
     // Declare the iterator for the loops below
     int i;
 
-    stepRecord[currStep] = LocateStartRoomPos();
+    stepRecord[currStep] = LocateStartRoomIndex();
 
     do {
         currroomIndex = stepRecord[currStep];
@@ -385,7 +383,7 @@ void GameStart()
                 if(currRoom.roomType == END_ROOM) {
                     printf("YOU HAVE FOUND THE END ROOM. CONGRATULATIONS!\n");
                     printf("YOU TOOK %d STEPS. YOUR PATH TO VICTORY WAS:\n",currStep + 1);
-                    printStepPath(stepRecord, currStep);
+                    OutputStepsTaken(stepRecord, currStep);
                     return;
                 }
             }
