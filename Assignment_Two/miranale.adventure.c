@@ -116,7 +116,8 @@ void InitializeRoomConnectionArray(int roomIndex){
  * Clears out the roomArray
 */
 void InitializeRoomArray() {
-    for(int i = 0; i < MAX_ADVENTURE_ROOM_COUNT; i++){
+    int i;
+    for(i = 0; i < MAX_ADVENTURE_ROOM_COUNT; i++){
         memset(roomArray[i].name, '\0', sizeof(roomArray[i].name));
         roomArray[i].currentConnectionCount = 0;
         InitializeRoomConnectionArray(i);
@@ -149,12 +150,14 @@ void PopulateRoomArray()
 */
 void UpdateKeyAndValue(char * keyStr, char * valueStr)
 {
+    int i;
+
     strtok(keyStr, ":");
     strcpy(valueStr, strtok(NULL, ""));
     valueStr[strlen(valueStr) - 1] = '\0';
     keyStr[strlen(keyStr) - 1] = '\0';
 
-    for(int i = 0; i < strlen(valueStr); i++) {
+    for(i = 0; i < strlen(valueStr); i++) {
         valueStr[i] = valueStr[i + 1];
     }
 }
@@ -168,9 +171,10 @@ void UpdateKeyAndValue(char * keyStr, char * valueStr)
 */
 int LocateRoomIndexByName(char * roomTitle)
 {
+    int i;
     int roomIndex = -1;
 
-    for(int i = 0;i < MAX_ADVENTURE_ROOM_COUNT; i++ ){
+    for(i = 0;i < MAX_ADVENTURE_ROOM_COUNT; i++ ){
         if (strcmp(roomArray[i].name, roomTitle) == 0 ) {
             return i;
         }
@@ -200,13 +204,14 @@ void GenerateRooms()
 {
     char fileNameBuffer[BUFFER_SIZE];
     char fileContentBuffer[BUFFER_SIZE];
+    int i;
 
     FILE * roomFilePtr;
 
     PopulateRoomArray(); // fill struct with file names
     chdir(dirName); // change to the directory containing all the files.
 
-    for(int i = 0;i < MAX_ADVENTURE_ROOM_COUNT;i++){
+    for(i = 0;i < MAX_ADVENTURE_ROOM_COUNT;i++){
         roomFilePtr = fopen(roomArray[i].name,"r");
 
         if(roomFilePtr == NULL) {
@@ -249,7 +254,9 @@ void GenerateRooms()
  * returns: the index of the starting room, will return -1 if it was not found
 */
 int LocateStartRoomIndex(){
-    for(int i =0; i < MAX_ADVENTURE_ROOM_COUNT; i++){ // for each room
+    int i;
+
+    for(i =0; i < MAX_ADVENTURE_ROOM_COUNT; i++){ // for each room
         if(roomArray[i].roomType == START_ROOM){ 
             return i;
         }
@@ -335,7 +342,8 @@ int CreateNewThread()
 */
 void OutputStepsTaken(int * pathTaken, int totalSteps)
 {
-    for (int i = 0; i < totalSteps + 1; i++) {
+    int i;
+    for (i = 0; i < totalSteps + 1; i++) {
         printf("%s\n", roomArray[pathTaken[i]].name);
     }
 }
