@@ -50,13 +50,11 @@ struct ROOM
 // Program globals used for the running of the adventure game
 char * timeOutputFileName = "timeOutput.txt";
 struct ROOM roomArray[MAX_ADVENTURE_ROOM_COUNT];
-pthread_mutex_t timeOutputFilePtr_Mutex;
+pthread_mutex_t timeOutputFilePtrMutex;
 char dirName[BUFFER_SIZE];
 
 /**
- * Function: CleareddirNameGlobal
  * Helper method that cleans the dirName directory global
- * 
 */
 void CleanDirectoryName()
 {
@@ -80,11 +78,13 @@ void PickDirectory()
     buffer = malloc(sizeof(struct stat));
     dirPtr = malloc(sizeof(struct dirent));
 
+    // Cleans the global room directory
     CleanDirectoryName();
     memset(currentDir, '\0', sizeof(currentDir));
     getcwd(currentDir, sizeof(currentDir));
     dir = opendir(currentDir);
 
+    // Checking that the directory file pointer is non-NULL
     if (dir != NULL) {
         while (dirPtr = readdir(dir)) {	
             if (strstr(dirPtr->d_name,fd) != NULL){
@@ -106,7 +106,7 @@ void PickDirectory()
  * roomIndex: index in the roomArray for the room for which
  * the connection array will be cleared
 */
-void initRoomconnectionArr(int roomIndex){
+void InitializeRoomConnectionArray(int roomIndex){
     for(int i = 0; i < UPPER_ROOM_CONNECTION_COUNT; i++){
             roomArray[roomIndex].connectionArr[i] = NULL;
     }
@@ -119,7 +119,7 @@ void InitializeRoomArray() {
     for(int i = 0; i < MAX_ADVENTURE_ROOM_COUNT; i++){
         memset(roomArray[i].name, '\0', sizeof(roomArray[i].name));
         roomArray[i].currentConnectionCount = 0;
-        initRoomconnectionArr(i);
+        InitializeRoomConnectionArray(i);
     }
 }
 
@@ -206,11 +206,10 @@ void GenerateRooms()
     PopulateRoomArray(); // fill struct with file names
     chdir(dirName); // change to the directory containing all the files.
 
-    //dont need to check if file exists since we grabed it eariler
     for(int i = 0;i < MAX_ADVENTURE_ROOM_COUNT;i++){
-        roomFilePtr = fopen(roomArray[i].name,"r");//OPEN FILE
+        roomFilePtr = fopen(roomArray[i].name,"r");
 
-        if(roomFilePtr == NULL) { // check if file was opened
+        if(roomFilePtr == NULL) {
             printf("%s file was not accessed\n",roomArray[i].name);
             return;
         }
@@ -218,10 +217,9 @@ void GenerateRooms()
         memset(fileNameBuffer, '\0', sizeof(fileNameBuffer));
         memset(fileContentBuffer, '\0', sizeof(fileContentBuffer));
 
-        // get each line from the file.
-        while(fgets(fileNameBuffer, sizeof(fileNameBuffer),roomFilePtr) != NULL){
+        // Reads each line from the current file
+        while(fgets(fileNameBuffer, sizeof(fileNameBuffer),roomFilePtr) != NULL) {
 
-            //get the label and value from the line.
             UpdateKeyAndValue(fileNameBuffer, fileContentBuffer);
             if(strcmp(fileNameBuffer, "ROOM TYP") == 0) {
                 if(strcmp(fileContentBuffer, "START_ROOM") == 0) {
@@ -271,6 +269,7 @@ void * GenerateCurrentTimeFilePtr()
     struct tm * timeData;
     FILE * timeOutputFilePtr;
 
+    // Cleans the time info
     memset(timeDisplayString, '\0', sizeof(timeDisplayString));
 
     time(&currentTime);
@@ -296,7 +295,9 @@ void PrintCurrentTime()
     memset(charBuffer, '\0', sizeof(charBuffer));
 
     timeOutputFilePtr = fopen(timeOutputFileName, "r");
-    if(timeOutputFilePtr == NULL) {
+
+    // Checks if the file does not exist or cannot be opened
+    if (timeOutputFilePtr == NULL) {
         printf("%s could not be accessed\n", timeOutputFileName);
         return;
     }
@@ -314,16 +315,17 @@ void PrintCurrentTime()
 */
 int CreateNewThread()
 {
-    pthread_t WritetimeOutputFilePtr_Thread;
-    pthread_mutex_lock(&timeOutputFilePtr_Mutex);
+    pthread_t timeFileWritingThread;
+    pthread_mutex_lock(&timeOutputFilePtrMutex);
 
-    if (pthread_create(&WritetimeOutputFilePtr_Thread, NULL, GenerateCurrentTimeFilePtr, NULL) != 0) {
+    // Checks if the pthread creation fails
+    if (pthread_create(&timeFileWritingThread, NULL, GenerateCurrentTimeFilePtr, NULL) != 0) {
         printf("Error from thread!");
         return 0;
     }
 
-    pthread_mutex_unlock(&timeOutputFilePtr_Mutex);
-    pthread_join(WritetimeOutputFilePtr_Thread, NULL);
+    pthread_mutex_unlock(&timeOutputFilePtrMutex);
+    pthread_join(timeFileWritingThread, NULL);
 
     return 1;
 }
