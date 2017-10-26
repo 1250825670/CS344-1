@@ -1,0 +1,229 @@
+------------------------------------------------------------------------------------------------------
+Creating file1 file2 file3 file4 file5
+
+
+total 48
+-rw-r--r--  1 alexandermiranda  staff   259 Oct  9 15:19 file1
+-rw-r--r--  1 alexandermiranda  staff    49 Oct  9 15:19 file2
+-rw-r--r--  1 alexandermiranda  staff     3 Oct  9 15:19 file3
+-rw-r--r--  1 alexandermiranda  staff     0 Oct  9 15:19 file4
+-rw-r--r--  1 alexandermiranda  staff  5831 Oct  9 15:19 file5
+-rwxr-xr-x  1 alexandermiranda  staff  1952 Oct  9 15:19 stats
+
+
+------------------------------------------------------------------------------------------------------
+File 1 Statistics by Rows: 1 point per correct number: 18
+
+Average	Median
+94	93
+86	84
+74	81
+74	80
+80	81
+64	61
+55	54
+54	53
+100	100
+
+
+------------------------------------------------------------------------------------------------------
+Check for Temporary Files: 5 points if no temp files
+
+file1
+file2
+file3
+file4
+file5
+stats
+
+
+------------------------------------------------------------------------------------------------------
+File 1 Statistics by Cols: 1 point per correct number: 18
+
+
+
+------------------------------------------------------------------------------------------------------
+Check for Temporary Files: 5 points if no temp files
+
+file1
+file2
+file3
+file4
+file5
+stats
+
+
+------------------------------------------------------------------------------------------------------
+File 2 Statistics by Rows: 1 point per correct number: 8
+
+Average	Median
+94	95
+91	97
+71	73
+94	94
+
+
+------------------------------------------------------------------------------------------------------
+File 2 Statistics by Cols: 1 point per correct number: 8
+
+
+
+------------------------------------------------------------------------------------------------------
+File 3 Statistics by Rows: 1 point per correct number: 2
+
+Average	Median
+17	17
+
+
+------------------------------------------------------------------------------------------------------
+File 3 Statistics by Cols: 1 point per correct number: 2
+
+
+
+------------------------------------------------------------------------------------------------------
+File 4 Statistics by Rows: lose 3 points if result contains any numbers; nothing or error text are OK
+
+Average	Median
+
+
+------------------------------------------------------------------------------------------------------
+File 4 Statistics by Cols: lose 3 points if result contains any numbers; nothing or error text are OK
+
+
+
+------------------------------------------------------------------------------------------------------
+File 5 Statistics by Cols: 1 point per number: 4
+
+
+
+------------------------------------------------------------------------------------------------------
+Check for Temporary Files: 5 points if no temp files
+
+file1
+file2
+file3
+file4
+file5
+stats
+
+
+------------------------------------------------------------------------------------------------------
+Good Syntax
+
+Standard Input on Rows: 2 points for exit value 0, 1 point for having no error text
+Average	Median
+94	95
+91	97
+71	73
+94	94
+Exit Value: 0
+Error Message:
+
+Standard Input on Cols: 2 points for exit value 0, 1 point for having no error text
+Exit Value: 0
+Error Message:
+
+Option -cols: 2 points for exit value 0, 1 point for having no error text
+Exit Value: 0
+Error Message:
+
+Option -rrrrrr: 2 points for exit value 0, 1 point for having no error text
+Average	Median
+94	95
+91	97
+71	73
+94	94
+Exit Value: 0
+Error Message:
+
+Option -cccccc: 3 points for exit value 0
+Exit Value: 0
+Error Message:
+
+Option -r: 3 points for exit value 0
+Average	Median
+94	95
+91	97
+71	73
+94	94
+Exit Value: 0
+Error Message:
+
+
+------------------------------------------------------------------------------------------------------
+Bad Syntax
+
+Too Few Arguments: 2 point for usage text, 2 points for exit value 1
+Exit Value: 1
+Error Message:
+./stats {-rows | -cols} [filename]
+
+Too Many Arguments: 2 point for usage text, 2 points for exit value 1
+Exit Value: 1
+Error Message:
+./stats {-rows | -cols} [filename]
+
+Wrong Format: 4 point for usage text, 2 points for exit value 1
+Exit Value: 1
+Error Message:
+./stats {-rows | -cols} [filename]
+
+Bad Option: 2 point for usage text, 2 points for exit value 1
+Exit Value: 1
+Error Message:
+./stats {-rows | -cols} [filename]
+
+
+------------------------------------------------------------------------------------------------------
+File Not Readable: 2 points for error msg, 2 points for program halting
+
+
+Exit Value: 1
+Error Message:
+./stats: cannot read file3
+
+
+
+------------------------------------------------------------------------------------------------------
+Check for Temporary Files: 5 points for no temp files
+
+file1
+file2
+file3
+file4
+file5
+stats
+
+
+------------------------------------------------------------------------------------------------------
+Simultaneous Runs
+
+
+Before Finishing
+file1
+file2
+file3
+file4
+file5
+simrun1.out
+simrun2.out
+simrun3.out
+stats
+
+waiting...
+waiting...
+waiting...
+waiting...
+waiting...
+waiting...
+waiting...
+waiting...
+waiting...
+waiting...
+waiting...
+waiting...
+waiting...
+waiting...
+waiting...
+waiting...
+waiting...
