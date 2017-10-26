@@ -13,6 +13,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <unistd.h>
 
 // Defining configuration constants based on the game specification
 #define MAX_ADVENTURE_ROOM_COUNT 7
