@@ -107,7 +107,9 @@ void PickDirectory()
  * the connection array will be cleared
 */
 void InitializeRoomConnectionArray(int roomIndex){
-    for(int i = 0; i < UPPER_ROOM_CONNECTION_COUNT; i++){
+    int i;
+
+    for(i = 0; i < UPPER_ROOM_CONNECTION_COUNT; i++){
             roomArray[roomIndex].connectionArr[i] = NULL;
     }
 }
