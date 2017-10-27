@@ -97,12 +97,13 @@ int IsConnectionArrFull(int roomIndex)
 */
 int AreRoomsConnected(int roomIndex1, int roomIndex2)
 {
+    int i;
     //this tells the connect room function not to connect the rooms 
     if(roomArray[roomIndex1].currentConnectionCount == UPPER_ROOM_CONNECTION_COUNT){
         return 1;
     }
 
-    for(int i = 0; i < roomArray[roomIndex1].currentConnectionCount;i++){
+    for(i = 0; i < roomArray[roomIndex1].currentConnectionCount;i++){
         if(roomArray[roomIndex1].connectionArr[i] == NULL ) {
             return 0;
         }
@@ -212,7 +213,9 @@ int RandomRoomWithinRange(int lowerBound, int upperBound)
  * initialized to NULL
 */
 void initRoomconnectionArr(int roomIndex){
-    for(int i = 0; i < UPPER_ROOM_CONNECTION_COUNT; i++){
+    int i;
+
+    for(i = 0; i < UPPER_ROOM_CONNECTION_COUNT; i++){
             roomArray[roomIndex].connectionArr[i] = NULL;
     }
 }
@@ -238,14 +241,15 @@ void CreateRoomDir()
 */
 void InitializeRoomArray()
 {
+    int i;
     // tells me which 7 rooms I picked out of 10
-    for(int i = 0; i < MAX_ADVENTURE_ROOM_COUNT; i++) {
+    for(i = 0; i < MAX_ADVENTURE_ROOM_COUNT; i++) {
         initializedRooms[i] = 0;
     }
 
     // Iterates through the roomArray and populates it with the rooms
     // for the next game
-    for (int i = 0; i < MAX_ADVENTURE_ROOM_COUNT; i++) {
+    for (i = 0; i < MAX_ADVENTURE_ROOM_COUNT; i++) {
         roomArray[i].currentConnectionCount = 0;
         initRoomconnectionArr(i);
     
@@ -272,9 +276,11 @@ void InitializeRoomArray()
 */
 void PopulateRoomArray()
 {
+    int i;
+    int j;
     InitializeRoomArray();
-    for(int i = 0; i < MAX_ADVENTURE_ROOM_COUNT; i++){
-        for(int j = 0; j < LOWER_ROOM_CONNECTION_COUNT; j++){
+    for(i = 0; i < MAX_ADVENTURE_ROOM_COUNT; i++){
+        for(j = 0; j < LOWER_ROOM_CONNECTION_COUNT; j++){
             ConnectRoom(i);
         }
     }
@@ -287,6 +293,8 @@ void WriteRoomFiles()
 {
     FILE * roomFilePtr;
     char dirName[BUFFER_SIZE];
+    int i;
+    int j;
 
     sprintf(dirName, "./miranale.rooms.%d", getpid());
 
@@ -300,11 +308,11 @@ void WriteRoomFiles()
     }
 
     // Iteration to creating the room files
-    for(int i = 0; i < MAX_ADVENTURE_ROOM_COUNT; i++){
+    for(i = 0; i < MAX_ADVENTURE_ROOM_COUNT; i++){
         roomFilePtr = fopen(roomArray[i].name,"w");
 
         fprintf(roomFilePtr,"ROOM NAME: %s\n", roomArray[i].name);
-        for(int j = 0;j < roomArray[i].currentConnectionCount;j++){
+        for(j = 0; j < roomArray[i].currentConnectionCount; j++){
             fprintf(roomFilePtr,"CONNECTION %d: %s\n", j+1, roomArray[i].connectionArr[j]->name);
         }
         
