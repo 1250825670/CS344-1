@@ -18,20 +18,15 @@
 #include <sys/stat.h>
 
 /* Global Constants begin */
-#define MAX_ARGS 512
-#define MAX_CHAR 2048
+#define MAX_ALLOWED_ARGS 512
+#define MAX_CHAR_LENGTH 2048
 /* Global Constants end */
 
 /* Forward declarations */
 void main_shell();
-void print_array (char ** arguments, int size);
-static void sig_handler(int sig);
+void output_arr (char ** arguments, int size);
+//static void signal_handler(int sig);
 /* Forward declarations end */
-
-/** 
-* This is a pointer to Strings that list the env variables
-*/
-extern char **env_vars_arr;
 
 /**
  * Struct used to track the pids running in the background
@@ -44,6 +39,11 @@ struct pid_array {
 	int size;
 	int capacity;
 };
+
+/** 
+* This is a pointer to Strings that list the env variables
+*/
+extern char **env_vars_arr;
 
 // Make a single pid_array in global scope
 struct pid_array bg_process_pids;
@@ -116,7 +116,6 @@ bool is_bg_process_pid(pid_t pid) {
  * Kill all processes (by issuing SIGKILL) referenced in the bg_process_pids array
 */
 void term_all_child_process() {
-	pid_t bg_process;
 	int i;
 	for (i = 0; i < bg_process_pids.size; i++) {
 		kill(bg_process_pids.pids[i], SIGKILL); // kill all child processes
@@ -131,7 +130,7 @@ void term_all_child_process() {
 void change_dir(char * dir) {
 	// Check if the directory mentioned can be changed into
 	// output error if chdir fails
-	if(!chdir(dir) == 0) {
+	if((!chdir(dir)) == 0) {
 		perror("cd");
 	}
 }
@@ -145,7 +144,6 @@ void lookup_all_bg_process() {
 	// Cite: Slide 21 lecture 9, and the manpage for wait()
 	// iterates through all the bg id's so that we don't print foreground process?
 	pid_t bg_pid = -1;
-	int i;
 	int bg_exit_status;
 
 	bg_pid = waitpid(-1, &bg_exit_status, WNOHANG);
@@ -180,19 +178,17 @@ void main_shell() {
 	// Stores the current exit status to display to the user when
 	// prompted
 	int foreground_exit_stat = 0;
-	// String constant denoting the /dev/null path
-	const char * devnull = "/dev/null";
 
 	// While loop that runs the shell process
 	while (true) {
 		// Storing data to properly parse user input
 		int arg_count = 0, 
 			word_count = 0;
-		char ** arguments = malloc(MAX_ARGS * sizeof(char *));
-		char * words[MAX_ARGS + 1];
+		char ** arguments = malloc(MAX_ALLOWED_ARGS * sizeof(char *));
+		char * words[MAX_ALLOWED_ARGS + 1];
 		char * command = NULL, * input_file = NULL, * output_file = NULL;
-		char input[MAX_CHAR + 1];
-		memset (input, '\0', MAX_CHAR);
+		char input[MAX_CHAR_LENGTH + 1];
+		memset (input, '\0', MAX_CHAR_LENGTH);
 		
 		// Booleans to track redirection mode and background vs foreground
 		bool background_mode = false, redir_input = false, redir_output = false;
@@ -208,7 +204,7 @@ void main_shell() {
 		printf(": ");
 		fflush(stdout);
 		fflush(stdin);
-		fgets(input, MAX_CHAR, stdin);
+		fgets(input, MAX_CHAR_LENGTH, stdin);
 
 		if (strlen(input) > 1) {
 			// Check if lines entered are comments which are prepended
@@ -220,12 +216,12 @@ void main_shell() {
 		}
 
 		// Check that user input is non-null
-		if (command = strtok(input, " \n")) {
+		if ((command = strtok(input, " \n"))) {
 			// store command as arguments[0] then move forward to tokenize rest
 			arguments[arg_count++] = command;
 
 			// Tokenized user input without needing to check if syntax errors occur
-			while(words[word_count] = strtok(NULL, " ")) {
+			while ((words[word_count] = strtok(NULL, " "))) {
 				char * word = words[word_count]; // Vastly improves readability in this block
 				
 				// End while loop if pound sign (#) is first char in input entered
@@ -303,7 +299,6 @@ void main_shell() {
 			else {
 				// fork process, then set up in/out redirection as appropriate
 				pid_t pid = fork(); // Parent process gets pid of child assigned, child gets 0
-				pid_t wpid;
 				int fd_in, fd_out, fd_in2, fd_out2;
 
 				// Execute process if a child process
