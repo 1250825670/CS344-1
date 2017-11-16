@@ -197,7 +197,6 @@ void main_shell() {
 		// Booleans to track redirection mode and background vs foreground
 		bool background_mode = false, redir_input = false, redir_output = false;
 		
-		// 
 		struct sigaction act;
 		act.sa_handler = SIG_IGN;
 		sigaction(SIGINT, &act, NULL);

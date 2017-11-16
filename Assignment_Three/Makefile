@@ -1,8 +1,8 @@
 CC=clang
-CFLAGS=-g -Wpedantic -Wall -std=c99
+CFLAGS=-g -Wall -std=c99
 
 all:
-	${CC} smallsh.c -o smallsh ${CFLAGS}
+	${CC} smallsh.c -o smallsh ${CFLAGS} -D_XOPEN_SOURCE
 
 clean:
 	rm -f smallsh
