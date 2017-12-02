@@ -1,42 +1,67 @@
 /**
  * Name: Alexander Miranda
  * Due Date: December 1st, 2017
- * Course: CS 344 - Operating Systems
  * Assignment: OTP (One Time Pad)
+ * 
 */
 
 #include <stdlib.h>
 #include <time.h>
 #include <stdio.h>
-#include <string.h>
+#include <stdbool.h>
 
-const char INSTRUCTIONS[] = "Instructions: %s <number>\nnumber is the byte size of the key to be generated\n";
+#define MIN_LENGTH 65
+#define MAX_LENGTH 90
 
-int main(int argc, char * argv[]) {
-    srand(time(0));
-
-    int key_len;
+/**
+ * Method that generates the encryption key
+ * 
+ * length: {Integer} - The number of random chars the key will have
+ * 
+ * returns: {Char *} - The char array representing the generated key
+*/
+char * generate_key (int length) {
+    // Dynamically allocate the memory necessary for the key
+    char * key = malloc(sizeof(char) * length);
     int i;
-    int randomChar;
 
-    if (argc != 2) {
-        fprintf(stderr, INSTRUCTIONS, argv[0]);
+    for(i = 0; i < length; i++) {
+        if( (rand() % (10) + 1) == 3 || (rand() % (10) + 1) == 6){
+            key[i] = ' ';
+        } else{
+            key[i] = (rand() % (MAX_LENGTH + 1 - MIN_LENGTH) + MIN_LENGTH);
+        }
+    }
+    // Null terminate the generated key
+    key[i] = '\0';
+
+    return key;
+}
+
+/**
+ * Main executable for the keygen program
+ * 
+ * argc: {Integer} - The number of arguments being passed to the executable
+ * argv: {Char * Array} - The string representation of the arguments passed in
+ * 
+ * returns: {Integer} - Returns integer denoting successful execution
+*/
+int main (int argc, char * argv[]) {
+    int key_len;
+    char * encryption_key;
+
+    if (argc < 2) {
+        fprintf(stderr, "keygen error: you must specify the key length to be generated\n\tUsage: keygen <length>\n");
         exit(1);
     }
 
-    key_len = atoi(argv[1]);
+    srand(time(NULL));
+    key_len = atoi(argv[1]) + 1;
 
-    for (i = 0; i < key_len; i++) {
-        randomChar = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[rand() % 27];
+    encryption_key = generate_key(key_len);
+    printf("%s", encryption_key);
 
-        if (randomChar == 'A' + 26) {
-            randomChar = ' ';
-        }
-
-        fprintf(stdout, "%c", randomChar);
-    }
-
-    fprintf(stdout, "\n");
+    free(encryption_key);
 
     return 0;
 }
