@@ -14,13 +14,12 @@
 #include <netinet/in.h>
 #include <signal.h>
 #include <stdbool.h>
-#define STACKMAX 5
+#define FILE_SIZE 70000
+#define MAX_STACK_ENTRIES 5
 
-
-struct pid_stack
-{
-    int NumBackPid;
-    pid_t BackgroundPids[STACKMAX];
+struct pid_stack {
+    pid_t BackgroundPids[MAX_STACK_ENTRIES];
+	int NumBackPid;
 };
 
 // Globals start
@@ -29,21 +28,24 @@ char * PROGRAM_NAME = "ENC_SERVER";
 char accepted_client_type = 'E';
 // Globals end
 
-/// NAME: init_pid_stack
-/// DESC: Creates pid stack with -1 in each val.
-/// SOURCE: assignment3
+/**
+ * Create the pid stack to track background processes setting each value to -1 initially
+*/
 void init_pid_stack() {
-    int i;
     pid_stack.NumBackPid = -1;
+	int i;
 
-    for(i = 0; i < STACKMAX -1; i++){
+    for(i = 0; i < MAX_STACK_ENTRIES -1; i++){
         pid_stack.BackgroundPids[i] = -1;
     }
 }
 
-/// NAME: PushBackPid
-/// DESC: adds a pid to the stack
-/// SOURCE: assignment3
+/**
+ * Pushes a pid number to the stack
+ * 
+ * pid: {pid_t} - The process's id to be added to the background pid stack
+ * 
+*/
 void PushBackPid(pid_t processId) {
     pid_stack.BackgroundPids[++(pid_stack.NumBackPid)] = processId;
 }
@@ -84,50 +86,58 @@ void error(const char * msg) {
 
 /// NAME: err_helper
 /// DESC: My error function that prints program name at beginning.
-void err_helper(const char* msg) 
-{
+/**
+ * Helper function that outputs errors with the program name prepended
+ * 
+ * msg: {const char *} - The body of the error message to output
+*/
+void err_helper(const char * msg) {
 	fprintf(stderr, "%s: %s\n", PROGRAM_NAME, msg);
 	exit(1);
 }
 
-/// NAME: encrypt
-/// DESC: encrypt a text with a key.
 /**
+ * Encrypts a body of text using a passed in cipher key
  * 
+ * key: {char *} - String representing the cipher key
+ * text: {char *} - String representing the text that will be encrypted
+ * 
+ * returns: {char *} - A copy of the encrypted text body
 */
 char * encrypt_text(char * key, char * text) {
 	int i;
 	int tmp_key;
 	int tmp_text;
-	int length = strlen(text);
-	char encryptStr[70000];
-	memset(encryptStr, '\0', sizeof(encryptStr));
+	int len = strlen(text);
+	char encrypted_string[FILE_SIZE];
 
-	for (i = 0; i < length; i++) {
+	memset(encrypted_string, '\0', sizeof(encrypted_string));
+
+	for (i = 0; i < len; i++) {
 		if(text[i] == ' ') {
-			encryptStr[i] = '?';
+			encrypted_string[i] = '?';
 		} else {
 			tmp_key = (int) key[i];
 			tmp_text = (int) text[i];
-			encryptStr[i] = (char) (tmp_text + (tmp_key % 3));
+			encrypted_string[i] = (char) (tmp_text + (tmp_key % 3));
 		}
 	}
 
-	return strdup(encryptStr);
+	return strdup(encrypted_string);
 }
 
 int main (int argc, char * argv[]) {
 	init_pid_stack();
 	signal(SIGINT, kill_server);
 
-	char FileBufferKey[70000];
-	char FileBuffertext[70000];
+	char FileBufferKey[FILE_SIZE];
+	char FileBuffertext[FILE_SIZE];
 	char* encryptBuffer;
 	char clienttype,charResponse;
-	int listenSocketFD, establishedConnectionFD, portNumber, charsRead ,FileLength;
+	int listener_sock_file_description, connection_file_description, portNumber, charsRead ,FileLength;
 	socklen_t sizeOfClientInfo;
 	char buffer[256];
-	struct sockaddr_in serverAddress, clientAddress;
+	struct sockaddr_in serverAddress, client_addr;
 
 	if (argc < 2) { fprintf(stderr,"USAGE: %s port\n", argv[0]); exit(1); } // Check usage & args
 
@@ -139,59 +149,57 @@ int main (int argc, char * argv[]) {
 	serverAddress.sin_addr.s_addr = INADDR_ANY; // Any address is allowed for connection to this process
 
 	// Set up the socket
-	listenSocketFD = socket(AF_INET, SOCK_STREAM, 0); // Create the socket
-	if (listenSocketFD < 0) { 
+	listener_sock_file_description = socket(AF_INET, SOCK_STREAM, 0); // Create the socket
+	if (listener_sock_file_description < 0) { 
 		error("ERROR opening socket");
 	}
 
-	// Enable the socket to begin listening
-	if (bind(listenSocketFD, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0) { // Connect socket to port
+	if (bind(listener_sock_file_description, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0) { // Connect socket to port
 		error("ERROR on binding");
 	}
-	listen(listenSocketFD, 5); // Flip the socket on - it can now receive up to 5 connections
-	sizeOfClientInfo = sizeof(clientAddress); // Get the size of the address for the client that will connect
+
+	listen(listener_sock_file_description, 5);
+	sizeOfClientInfo = sizeof(client_addr);
 
 	while(1) {
-		// Accept a connection, blocking if one is not available until one connects
-		establishedConnectionFD = accept(listenSocketFD, (struct sockaddr *)&clientAddress, &sizeOfClientInfo); // Accept
-		if (establishedConnectionFD < 0) error("ERROR on accept");
+		connection_file_description = accept(listener_sock_file_description, (struct sockaddr *) &client_addr, &sizeOfClientInfo);
+		if (connection_file_description < 0) { 
+			error("ERROR on accept");
+		}
 
 		pid_t pid = fork();
+
 		switch(pid) {
 			case -1:
 				err_helper("Child fork error.");
 			case 0:
-				recv(establishedConnectionFD, &clienttype, sizeof(char), 0);
+				recv(connection_file_description, &clienttype, sizeof(char), 0);
 				if (clienttype != accepted_client_type) {
 					charResponse = 'N';
-					send(establishedConnectionFD, &charResponse, sizeof(char), 0);
+					send(connection_file_description, &charResponse, sizeof(char), 0);
 					err_helper("Invalid client connection.");
 				} else {
 					charResponse = 'Y';
-					send(establishedConnectionFD,&charResponse,sizeof(char),0);
+					send(connection_file_description,&charResponse,sizeof(char),0);
 				}
 
-				recv(establishedConnectionFD,&FileLength,sizeof(FileLength),0);
+				recv(connection_file_description,&FileLength,sizeof(FileLength),0);
 
 				memset(FileBufferKey,'\0', sizeof(FileBufferKey));
 				memset(FileBuffertext,'\0', sizeof(FileBuffertext));
 
-				recv(establishedConnectionFD, FileBufferKey, FileLength * sizeof(char), 0);
-				recv(establishedConnectionFD, FileBuffertext, FileLength * sizeof(char), 0);
+				recv(connection_file_description, FileBufferKey, FileLength * sizeof(char), 0);
+				recv(connection_file_description, FileBuffertext, FileLength * sizeof(char), 0);
 				encryptBuffer = encrypt_text(FileBufferKey, FileBuffertext);
 
 				
-				send(establishedConnectionFD, encryptBuffer, FileLength * sizeof(char), 0);
-				shutdown(establishedConnectionFD, 2);
+				send(connection_file_description, encryptBuffer, FileLength * sizeof(char), 0);
+				shutdown(connection_file_description, 2);
 
 				exit(0);
-			default://parent
-				//add to 5 possible processes.
+			default:
 				PushBackPid(pid);
 		}
-
 	}
-
-
 	return 0; 
 }
