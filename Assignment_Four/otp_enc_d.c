@@ -126,6 +126,14 @@ char * encrypt_text(char * key, char * text) {
 	return strdup(encrypted_string);
 }
 
+/**
+ * Main routine for the otp_enc_d file
+ * 
+ * argc: {Integer} - The number of args provided to the executable
+ * argv: {char * Array} - The char * Array representing the args passed to the executable
+ * 
+ * returns: {Integer} - Returns an integer representing success or failure
+*/
 int main (int argc, char * argv[]) {
 	init_pid_stack();
 	signal(SIGINT, kill_server);

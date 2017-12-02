@@ -16,6 +16,8 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
+#define BUFF_SIZE 256
+
 //NON MACRO GLOBALS
 char * PROGRAM_NAME = "DEC_CLIENT";
 
@@ -141,11 +143,20 @@ int get_encryption_file_obj_file_length(file_data_obj * obj) {
 	return obj->file_length;
 }
 
-int main(int argc, char* argv[]) {
-	int sock_file_description, portNumber, charsWritten, charsRead;
+/**
+ * Main routine for the otp_dec file
+ * 
+ * argc: {Integer} - The number of args provided to the executable
+ * argv: {char * Array} - The char * Array representing the args passed to the executable
+ * 
+ * returns: {Integer} - Returns an integer representing success or failure
+*/
+int main (int argc, char* argv[]) {
+	int sock_file_description;
+	int port_num;
 	struct sockaddr_in server_addr;
 	struct hostent* serverHostInfo;
-	char buffer[256];
+	char buffer[BUFF_SIZE];
     
 	//validate args and prep file_data struct.
 	validArgc(argc);
@@ -160,9 +171,9 @@ int main(int argc, char* argv[]) {
 	char file_length[128];
 
 	memset((char*) &server_addr, '\0', sizeof(server_addr));
-	portNumber = atoi(argv[3]);
+	port_num = atoi(argv[3]);
 	server_addr.sin_family = AF_INET;
-	server_addr.sin_port = htons(portNumber);
+	server_addr.sin_port = htons(port_num);
 
 	// only connections on your current machine.
 	serverHostInfo = gethostbyname("localhost");

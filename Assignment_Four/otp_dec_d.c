@@ -25,8 +25,8 @@ struct pid_tracker {
 
 // Globals start
 struct pid_tracker pid_stack;
-char * PROGRAM_NAME = "DEC_SERVER";
-char AcceptedClientType = 'D';
+char * program_name = "DEC_SERVER";
+char proper_client_type = 'D';
 // Globals end
 
 /**
@@ -98,7 +98,7 @@ void error (const char * msg) {
  * msg: The body of the error message to be outputted
 */
 void err_helper(const char * msg) {
-	fprintf(stderr, "%s: %s\n", PROGRAM_NAME, msg);
+	fprintf(stderr, "%s: %s\n", program_name, msg);
 	exit(1);
 }
 
@@ -148,16 +148,16 @@ int main (int argc, char * argv[]) {
 
 	char file_key_buff[FILE_SIZE];
 	char file_text_buff[FILE_SIZE];
-	char charResponse;
 	char clienttype;
 	char * encrypted_buff;
 	int listening_sock_file_description;
 	int connection_file_description;
+	char response;
 	int charsRead; 
 	int file_len;
 	int portNumber;
 
-	socklen_t sizeOfClientInfo;
+	socklen_t client_data_size;
 	char buffer[MAX_BUFF];
 	struct sockaddr_in serverAddress, clientAddress;
 
@@ -172,8 +172,8 @@ int main (int argc, char * argv[]) {
 
 	// Configure and create the socket connection
 	serverAddress.sin_family = AF_INET;
-	serverAddress.sin_port = htons(portNumber);
 	serverAddress.sin_addr.s_addr = INADDR_ANY;
+	serverAddress.sin_port = htons(portNumber);
 	listening_sock_file_description = socket(AF_INET, SOCK_STREAM, 0);
 
 	if (listening_sock_file_description < 0) { 
@@ -186,33 +186,34 @@ int main (int argc, char * argv[]) {
 	}
 
 	listen(listening_sock_file_description, MAX_STACK_LENGTH); // Flip the socket on - it can now receive up to 5 connections
-	sizeOfClientInfo = sizeof(clientAddress); // Get the size of the address for the client that will connect
+	client_data_size = sizeof(clientAddress); // Get the size of the address for the client that will connect
 
 	while(1) {
-		// Accept a connection, blocking if one is not available until one connects
-		connection_file_description = accept(listening_sock_file_description, (struct sockaddr *) &clientAddress, &sizeOfClientInfo);
+		// Attempts a connection followed by an error check if it fails
+		connection_file_description = accept(listening_sock_file_description, (struct sockaddr *) &clientAddress, &client_data_size);
 		if (connection_file_description < 0) {
 			error("ERROR on accept!");
 		}
 
+
 		pid_t pid = fork();
+
 		switch(pid) {
 			case -1:
-				err_helper("Child fork error.");
-			case 0://child.
-
+				err_helper("Child fork was not created");
+			case 0:
 				//check the client for 'D'ecryption type.
-				recv(connection_file_description,&clienttype,sizeof(char),0);
-				if (clienttype != AcceptedClientType) {
-					charResponse = 'N';
-					send(connection_file_description, &charResponse, sizeof(char), 0);
-					err_helper("Invalid client connection.");//error
+				recv(connection_file_description, &clienttype, sizeof(char), 0);
+				if (clienttype != proper_client_type) {
+					response = 'N';
+					send(connection_file_description, &response, sizeof(char), 0);
+					err_helper("Invalid client connection!");
 				} else {
-					charResponse = 'Y';
-					send(connection_file_description,&charResponse,sizeof(char),0);
+					response = 'Y';
+					send(connection_file_description, &response, sizeof(char), 0);
 				}
 
-				recv(connection_file_description, &file_len, sizeof(file_len),0);
+				recv(connection_file_description, &file_len, sizeof(file_len), 0);
 
 				memset(file_key_buff, '\0', sizeof(file_key_buff));
 				memset(file_text_buff, '\0', sizeof(file_text_buff));
@@ -222,7 +223,7 @@ int main (int argc, char * argv[]) {
 				encrypted_buff = decrypt_text(file_key_buff, file_text_buff);
 
 				send(connection_file_description, encrypted_buff, file_len * sizeof(char), 0);
-				shutdown(connection_file_description,2);
+				shutdown(connection_file_description, 2);
 
 				exit(0);
 			default:
