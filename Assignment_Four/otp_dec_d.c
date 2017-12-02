@@ -123,7 +123,7 @@ char * decrypt_text(char * key, char * text) {
 			encrypted_text[i] = ' ';
 		} else{
 			tmp_key = (int) key[i];
-			tmp_t ext = (int) text[i];
+			tmp_text = (int) text[i];
 			encrypted_text[i] = (char)(tmp_text - (tmp_key % 3));
 		}
 	}
