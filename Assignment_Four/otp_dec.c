@@ -55,7 +55,7 @@ void validArgc(int argc) {
 
 /// NAME: create_encryption_obj
 /// DESC: creates an encryption object to store file data.
-file_data_obj* create_encryption_obj(char ** argv) {
+file_data_obj * create_encryption_obj(char ** argv) {
 	file_data_obj* file_ob = malloc(1 * sizeof(file_data_obj));
 
 	// set file names.

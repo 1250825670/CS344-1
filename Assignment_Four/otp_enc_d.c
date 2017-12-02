@@ -1,3 +1,10 @@
+/**
+ * Name: Alexander Miranda
+ * Due Date: December 1st, 2017
+ * Assignment: OTP (One Time Pad)
+ * 
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,115 +15,114 @@
 #include <signal.h>
 #include <stdbool.h>
 #define STACKMAX 5
-typedef enum {FALSE = 0, TRUE = 1} boolean;
 
-//Taken from assignment3
-struct PidStackObj
+
+struct pid_stack
 {
     int NumBackPid;
     pid_t BackgroundPids[STACKMAX];
 };
 
-//NON MACRO GLOBALS
-struct PidStackObj PidStack;
-char* PROGNAME = "ENC_SERVER";
-char AcceptedClientType = 'E';
+// Globals start
+struct pid_stack pid_stack;
+char * PROGRAM_NAME = "ENC_SERVER";
+char accepted_client_type = 'E';
+// Globals end
 
-/// NAME: _InitPidObj
+/// NAME: init_pid_stack
 /// DESC: Creates pid stack with -1 in each val.
 /// SOURCE: assignment3
-void _InitPidObj()
-{
+void init_pid_stack() {
     int i;
-    PidStack.NumBackPid = -1;
+    pid_stack.NumBackPid = -1;
 
     for(i = 0; i < STACKMAX -1; i++){
-        PidStack.BackgroundPids[i] = -1;
+        pid_stack.BackgroundPids[i] = -1;
     }
 }
 
 /// NAME: PushBackPid
 /// DESC: adds a pid to the stack
 /// SOURCE: assignment3
-void PushBackPid(pid_t processId)
-{
-    PidStack.BackgroundPids[++(PidStack.NumBackPid)] = processId;
+void PushBackPid(pid_t processId) {
+    pid_stack.BackgroundPids[++(pid_stack.NumBackPid)] = processId;
 }
 
 /// NAME: PopBackPid
 /// DESC: removes pid from top
 /// SOURCE: assignment3
-pid_t PopBackPid()
-{
-    return PidStack.BackgroundPids[PidStack.NumBackPid--];
+pid_t PopBackPid() {
+    return pid_stack.BackgroundPids[pid_stack.NumBackPid--];
 }
 
 /// NAME: TopBackPid
 /// DESC: reads top of stack
 /// SOURCE: assignment3
-pid_t TopBackPid()
-{
-    return PidStack.BackgroundPids[PidStack.NumBackPid];
+pid_t TopBackPid() {
+    return pid_stack.BackgroundPids[pid_stack.NumBackPid];
 }
 
 /// NAME: KillBGProcesses
 /// DESC: helper function for exting.
 /// SOURCE: assignment3
-void TerminateServer(int sig)
-{
+void kill_server(int sig) {
     int i;
-    for(i = 0;i < PidStack.NumBackPid + 1;i++){
-        kill(PidStack.BackgroundPids[i], SIGINT); // interrupt all bg pids.
+    for(i = 0;i < pid_stack.NumBackPid + 1;i++){
+        kill(pid_stack.BackgroundPids[i], SIGINT); // interrupt all bg pids.
     }
 }
 
-//Brewster error function.
-void error(const char *msg) { perror(msg); exit(1); } // Error function used for reporting issues
+/**
+ * Professor provided error function
+ * 
+ * msg: Body of the error message passed to perror
+*/
+void error(const char * msg) { 
+	perror(msg); 
+	exit(1); 
+}
 
-/// NAME: SpecificError
+/// NAME: err_helper
 /// DESC: My error function that prints program name at beginning.
-void SpecificError(const char* msg) 
+void err_helper(const char* msg) 
 {
-	fprintf(stderr,"%s: %s\n",PROGNAME,msg);
+	fprintf(stderr, "%s: %s\n", PROGRAM_NAME, msg);
 	exit(1);
 }
 
-/// NAME: Encryption
+/// NAME: encrypt
 /// DESC: encrypt a text with a key.
-char* Encryption(char* Key,char* Text)
-{
+/**
+ * 
+*/
+char * encrypt_text(char * key, char * text) {
 	int i;
-	int keytemp,texttemp;
-	int length = strlen(Text);
-	char EncryptionStr[70000];
-	memset(EncryptionStr,'\0',sizeof(EncryptionStr));//setup buffer
+	int tmp_key;
+	int tmp_text;
+	int length = strlen(text);
+	char encryptStr[70000];
+	memset(encryptStr, '\0', sizeof(encryptStr));
 
-	for(i = 0;i < length; i++){//iterate through all chars.
-		if(Text[i] == ' '){
-			EncryptionStr[i] = '?'; // replace spaces with ?
-		}
-		else{
-			keytemp = (int)Key[i];
-			texttemp = (int)Text[i];
-			// take char int values and add them.
-			EncryptionStr[i] = (char)(texttemp + (keytemp % 3));
+	for (i = 0; i < length; i++) {
+		if(text[i] == ' ') {
+			encryptStr[i] = '?';
+		} else {
+			tmp_key = (int) key[i];
+			tmp_text = (int) text[i];
+			encryptStr[i] = (char) (tmp_text + (tmp_key % 3));
 		}
 	}
 
-	//return new encryption.
-	return strdup(EncryptionStr);
+	return strdup(encryptStr);
 }
 
-int main(int argc, char *argv[])
-{
-	//initialization.
-	_InitPidObj();
-	signal(SIGINT,TerminateServer);//handler to kill bg pids.
+int main (int argc, char * argv[]) {
+	init_pid_stack();
+	signal(SIGINT, kill_server);
 
-	//vars.
 	char FileBufferKey[70000];
 	char FileBuffertext[70000];
-	char* EncryptionBuffer;
+	char* encryptBuffer;
 	char clienttype,charResponse;
 	int listenSocketFD, establishedConnectionFD, portNumber, charsRead ,FileLength;
 	socklen_t sizeOfClientInfo;
@@ -134,61 +140,49 @@ int main(int argc, char *argv[])
 
 	// Set up the socket
 	listenSocketFD = socket(AF_INET, SOCK_STREAM, 0); // Create the socket
-	if (listenSocketFD < 0){ 
+	if (listenSocketFD < 0) { 
 		error("ERROR opening socket");
 	}
 
 	// Enable the socket to begin listening
-	if (bind(listenSocketFD, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0){ // Connect socket to port
+	if (bind(listenSocketFD, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0) { // Connect socket to port
 		error("ERROR on binding");
 	}
 	listen(listenSocketFD, 5); // Flip the socket on - it can now receive up to 5 connections
 	sizeOfClientInfo = sizeof(clientAddress); // Get the size of the address for the client that will connect
 
-	while(TRUE)
-	{
+	while(1) {
 		// Accept a connection, blocking if one is not available until one connects
 		establishedConnectionFD = accept(listenSocketFD, (struct sockaddr *)&clientAddress, &sizeOfClientInfo); // Accept
 		if (establishedConnectionFD < 0) error("ERROR on accept");
 
 		pid_t pid = fork();
-		switch(pid)
-		{
+		switch(pid) {
 			case -1:
-				SpecificError("Child fork error.");
-			case 0://child.
-
-				//check the client for 'E'ncrpytion type.
-				recv(establishedConnectionFD,&clienttype,sizeof(char),0);
-				if(clienttype != AcceptedClientType){//if not matching client send no connection.
+				err_helper("Child fork error.");
+			case 0:
+				recv(establishedConnectionFD, &clienttype, sizeof(char), 0);
+				if (clienttype != accepted_client_type) {
 					charResponse = 'N';
-					send(establishedConnectionFD,&charResponse,sizeof(char),0);
-					SpecificError("Invalid client connection.");//error
-				}
-				else{
-					//send accept client.
+					send(establishedConnectionFD, &charResponse, sizeof(char), 0);
+					err_helper("Invalid client connection.");
+				} else {
 					charResponse = 'Y';
 					send(establishedConnectionFD,&charResponse,sizeof(char),0);
 				}
 
 				recv(establishedConnectionFD,&FileLength,sizeof(FileLength),0);
-				//printf(":::%d\n",FileLength);
 
-				memset(FileBufferKey,'\0',sizeof(FileBufferKey));
-				memset(FileBuffertext,'\0',sizeof(FileBuffertext));
+				memset(FileBufferKey,'\0', sizeof(FileBufferKey));
+				memset(FileBuffertext,'\0', sizeof(FileBuffertext));
 
-				//begin reading in File
-				recv(establishedConnectionFD,FileBufferKey, FileLength * sizeof(char),0);//keyfile.
-				recv(establishedConnectionFD,FileBuffertext,FileLength * sizeof(char),0);//textfile.
-				EncryptionBuffer = Encryption(FileBufferKey,FileBuffertext);//encrypt files.
+				recv(establishedConnectionFD, FileBufferKey, FileLength * sizeof(char), 0);
+				recv(establishedConnectionFD, FileBuffertext, FileLength * sizeof(char), 0);
+				encryptBuffer = encrypt_text(FileBufferKey, FileBuffertext);
 
-				// printf(":::%s|\n",FileBufferKey);
-				// printf(":::%s|\n",FileBuffertext);
-				// printf(":::%s|\n",EncryptionBuffer);
-
-				//send decrption text back to client and close descriptor.
-				send(establishedConnectionFD,EncryptionBuffer,FileLength * sizeof(char),0);
-				shutdown(establishedConnectionFD,2);
+				
+				send(establishedConnectionFD, encryptBuffer, FileLength * sizeof(char), 0);
+				shutdown(establishedConnectionFD, 2);
 
 				exit(0);
 			default://parent

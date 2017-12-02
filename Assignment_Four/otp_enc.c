@@ -1,72 +1,82 @@
+/**
+ * Name: Alexander Miranda
+ * Due Date: December 1st, 2017
+ * Assignment: OTP (One Time Pad)
+ * 
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h> 
 #include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
 #include <sys/stat.h>
 
-//NON MACRO GLOBALS
-char* PROGNAME = "ENC_CLIENT";
+// Globals start
+char * PROGRAM_NAME = "ENC_CLIENT";
+// Globals end
 
-//Struct for passing file data around
-struct FileInfoObject{
-	int KeyDescriptor;
-	int TextDescriptor;
-
-	int FileLength;// Key and Text must be the same length
-
-	char* KeyFileName;
-	char* TextFileName;
+struct file_data_obj {
+	int key;
+	int text;
+	int file_length;
+	char * key_filename;
+	char * text_filename;
 };
-typedef struct FileInfoObject FileInfoObject;
 
-//Brewster error function.
-void error(const char *msg) 
-{ 
-	perror(msg); exit(0); // Error function used for reporting issues
+typedef struct file_data_obj file_data_obj;
+
+/**
+ * Professor provided error function
+ * 
+ * msg: The body of the error message outputted
+*/
+void error(const char * msg) { 
+	perror(msg); 
+	exit(0);
 } 
 
-/// NAME: SpecificError
-/// DESC: My error function that prints program name at beginning.
-void SpecificError(const char* msg) 
-{
-	fprintf(stderr,"%s: %s\n",PROGNAME,msg);
+/**
+ * Helper function that outputs error message with program name prepended
+ * 
+ * msg: Body of the error message
+*/
+void err_helper(const char * msg) {
+	fprintf(stderr, "%s: %s\n", PROGRAM_NAME, msg);
 	exit(1);
 }
 
 /// NAME: validArgc
 /// DESC: checks that atleast 3 args are passed to the function.
-void validArgc(int argc)
-{
+void validArgc(int argc) {
     if(argc == 3){
-        SpecificError("Invalid number of arguments.");
+        err_helper("Invalid number of arguments.");
         exit(1);
     }
 }
 
 /// NAME: InitEncryptionObject
 /// DESC: creates an encryption object to store file data.
-FileInfoObject* InitEncryptionObject(char** argv)
-{
-	FileInfoObject* file_ob = malloc(1 * sizeof(FileInfoObject));
+file_data_obj * InitEncryptionObject(char ** argv) {
+	file_data_obj* file_ob = malloc(1 * sizeof(file_data_obj));
 
 	// set file names.
-	file_ob->TextFileName = argv[1];
-	file_ob->KeyFileName = argv[2];
+	file_ob->text_filename = argv[1];
+	file_ob->key_filename = argv[2];
 
 	// open text file to get descriptor.
-	file_ob->TextDescriptor = open(argv[1],O_RDONLY);
-	if(file_ob->TextDescriptor < 0){
-		SpecificError("Couldnt open plaintext file");
+	file_ob->text = open(argv[1],O_RDONLY);
+	if(file_ob->text < 0){
+		err_helper("Couldnt open plaintext file");
 	}
 	// open key file to get descriptor.
-	file_ob->KeyDescriptor = open(argv[2],O_RDONLY);
-	if(file_ob->KeyDescriptor < 0){
-		SpecificError("Couldnt open keytext file");
+	file_ob->key = open(argv[2],O_RDONLY);
+	if(file_ob->key < 0){
+		err_helper("Couldnt open keytext file");
 	}
 
 	return file_ob;
@@ -74,30 +84,29 @@ FileInfoObject* InitEncryptionObject(char** argv)
 
 /// NAME: ValidatefileContent
 /// DESC: checks for invalid chars in a file.
-char* ValidatefileContent(FileInfoObject* Obj, char fd)
-{
+char * ValidatefileContent(file_data_obj * Obj, char fd) {
 	int i,FileDescriptor;
-	char* fileContent = malloc( Obj->FileLength * sizeof(char*));
+	char* fileContent = malloc( Obj->file_length * sizeof(char*));
 	int Buffer;
 
 	//conditionsal for which file descriptor we are using.
 	if(fd == 'K'){
-		FileDescriptor = Obj->KeyDescriptor;
+		FileDescriptor = Obj->key;
 	}
 	else if(fd == 'T'){
-		FileDescriptor = Obj->TextDescriptor;
+		FileDescriptor = Obj->text;
 	}
 
 	//check if file can be opened.
-	if(read(FileDescriptor,fileContent,Obj->FileLength) < 0){ // redundant.
-		SpecificError("Couldnt open plaintext file");
+	if(read(FileDescriptor,fileContent,Obj->file_length) < 0){ // redundant.
+		err_helper("Couldnt open plaintext file");
 	}
 
 	// validate the contents of file is within A-Z or is a space.
-	for(i = 0; i < Obj->FileLength; i++){
+	for(i = 0; i < Obj->file_length; i++){
 		Buffer = (fileContent[i]);
 		if( !(Buffer == ' ' || (Buffer >= 'A' && Buffer <= 'Z')) ){
-			SpecificError("Invalid character in a file.");
+			err_helper("Invalid character in a file.");
 		}
 
 	}
@@ -107,66 +116,66 @@ char* ValidatefileContent(FileInfoObject* Obj, char fd)
 
 /// NAME: CloseEncrytionObjFD
 /// DESC: Clean up function for file descriptors.
-void CloseEncrytionObjFD(FileInfoObject* Obj)
-{
+void CloseEncrytionObjFD(file_data_obj * Obj) {
 	// close desciptors.
-	close(Obj->TextDescriptor);
-	close(Obj->KeyDescriptor);
+	close(Obj->text);
+	close(Obj->key);
 
 	//set to invalid num to be overwritten.
-	Obj->TextDescriptor = -1;
-	Obj->KeyDescriptor = -1;
+	Obj->text = -1;
+	Obj->key = -1;
 }
 
-/// NAME: GetEncryptionObjFileLength
-/// DESC: checks if key file is longer than text then sets struct file length.
-int GetEncryptionObjFileLength(FileInfoObject* Obj)
-{
-	struct stat Key,Text;
+/**
+ * Finds the encrypted file's length and returns it
+ * 
+ * obj: {struct file_data_obj *} - Pointer to the file_data_obj that length will be called on
+ * 
+ * returns: {Integer} - The length of the file's length
+*/
+int get_encrypted_file_length(file_data_obj * file_obj) {
+	struct stat key;
+	struct stat text;
 
 	// fail safe for stat error.
-	if(stat(Obj->KeyFileName,&Key) < 0){
-		SpecificError("Error getting stats of Keyfile.");
+	if (stat(file_obj->key_filename, &key) < 0){
+		err_helper("Error getting stats of Keyfile.");
 	}
 	// fail safe for stat error.
-	if(stat(Obj->TextFileName,&Text) < 0){
-		SpecificError("Error getting stats of Textfile.");
+	if (stat(file_obj->text_filename, &text) < 0){
+		err_helper("Error getting stats of Textfile.");
 	}
 
 	//return error if key is shorter than text file.
-	if(Key.st_size -1 < Text.st_size -1){
-		SpecificError("KeyFile too short.");
-	}
-	else{
+	if (key.st_size - 1 < text.st_size - 1){
+		err_helper("KeyFile too short.");
+	} else {
 		// dont worry about null char.
-		Obj->FileLength = Text.st_size -1;
+		file_obj->file_length = text.st_size -1;
 	}
 
-	return Obj->FileLength;
+	return file_obj->file_length;
 }
 
-int main(int argc, char* argv[])
-{
-	//vars
+int main(int argc, char * argv[]) {
 	int socketFD, portNumber, charsWritten, charsRead;
 	struct sockaddr_in serverAddress;
 	struct hostent* serverHostInfo;
 	char buffer[256];
     
-	//validate args and prep fileinfo struct.
 	validArgc(argc);
-	FileInfoObject* FileInfo = InitEncryptionObject(argv);
-	GetEncryptionObjFileLength(FileInfo);
+	file_data_obj* FileInfo = InitEncryptionObject(argv);
+	get_encrypted_file_length(FileInfo);
 
 	//Read Key and TextFile.
 	char* KeyText = ValidatefileContent(FileInfo,'K');
-	char* RecievedText = malloc( FileInfo->FileLength * sizeof(char*));
+	char* RecievedText = malloc( FileInfo->file_length * sizeof(char*));
 	char* PlainText= ValidatefileContent(FileInfo,'T');
 	char serverAccept;
-	char fileLength[128];
+	char file_length[128];
 
 	// Set up the server address struct
-	memset((char*)&serverAddress, '\0', sizeof(serverAddress)); // Clear out the address struct
+	memset((char*) &serverAddress, '\0', sizeof(serverAddress)); // Clear out the address struct
 	portNumber = atoi(argv[3]); // Get the port number, convert to an integer from a string
 	serverAddress.sin_family = AF_INET; // Create a network-capable socket
 	serverAddress.sin_port = htons(portNumber); // Store the port number
@@ -177,7 +186,7 @@ int main(int argc, char* argv[])
 		fprintf(stderr, "CLIENT: ERROR, no such host\n");
 		exit(1);
 	}
-	memcpy((char*)&serverAddress.sin_addr.s_addr, (char*)serverHostInfo->h_addr, serverHostInfo->h_length); // Copy in the address
+	memcpy((char*) &serverAddress.sin_addr.s_addr, (char*) serverHostInfo->h_addr, serverHostInfo->h_length); // Copy in the address
 
 	// Set up the socket
 	socketFD = socket(AF_INET, SOCK_STREAM, 0); // Create the socket
@@ -186,26 +195,25 @@ int main(int argc, char* argv[])
 	}
 	
 	// Connect to server
-	if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0){ // Connect socket to address
+	if (connect(socketFD, (struct sockaddr*) &serverAddress, sizeof(serverAddress)) < 0){ // Connect socket to address
 	 	error("CLIENT: ERROR connecting");
 	}
 
-
 	//Authenticating server.
-	send(socketFD,&(PROGNAME[0]), sizeof(char),0);//send client info E for Encryption client.
+	send(socketFD,&(PROGRAM_NAME[0]), sizeof(char),0);//send client info E for Encryption client.
 	recv(socketFD,&serverAccept,sizeof(char),0);// get Y or N for matching server.
 	if(serverAccept != 'Y'){
-		close(socketFD); // if not valid exit.
-		SpecificError("not an Encryption server.");
+		close(socketFD);
+		err_helper("not an encryption server.");
 	}
 
 	//sending data to server.
-	send(socketFD,&(FileInfo->FileLength), sizeof(FileInfo->FileLength),0);//send int of file length.
-	send(socketFD,KeyText,FileInfo->FileLength * sizeof(char),0); // send key text.
-	send(socketFD,PlainText,FileInfo->FileLength * sizeof(char),0); // send mesage text.
+	send(socketFD,&(FileInfo->file_length), sizeof(FileInfo->file_length),0);//send int of file length.
+	send(socketFD,KeyText,FileInfo->file_length * sizeof(char),0); // send key text.
+	send(socketFD,PlainText,FileInfo->file_length * sizeof(char),0); // send mesage text.
 
 	//recieving data from server.
-	recv(socketFD,RecievedText,FileInfo->FileLength * sizeof(char),0); //retrive encrpyted text.
+	recv(socketFD,RecievedText,FileInfo->file_length * sizeof(char),0); //retrive encrpyted text.
 	printf("%s\n",RecievedText);
 
 	//freeing data.

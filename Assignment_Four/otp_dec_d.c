@@ -17,23 +17,21 @@
 #define MAX_STACK_LENGTH 5
 #define FILE_SIZE 70000
 
-//Taken from assignment3
-struct pid_tracker
-{
+struct pid_tracker {
     int pid_num;
     pid_t background_pids[MAX_STACK_LENGTH];
 };
 
-//NON MACRO GLOBALS
+// Globals start
 struct pid_tracker pid_stack;
 char * PROGRAM_NAME = "DEC_SERVER";
 char AcceptedClientType = 'D';
+// Globals end
 
 /// NAME: init_pid_stack
 /// DESC: Creates pid stack with -1 in each val.
 /// SOURCE: assignment3
-void init_pid_stack()
-{
+void init_pid_stack() {
     int i;
     pid_stack.pid_num = -1;
 
@@ -45,82 +43,100 @@ void init_pid_stack()
 /// NAME: push_pid
 /// DESC: adds a pid to the stack
 /// SOURCE: assignment3
-void push_pid(pid_t processId)
-{
+/**
+ * 
+*/
+void push_pid(pid_t processId) {
     pid_stack.background_pids[++(pid_stack.pid_num)] = processId;
 }
 
-/// NAME: pop_pid
-/// DESC: removes pid from top
-/// SOURCE: assignment3
-pid_t pop_pid()
-{
+/**
+ * Remove the topmost/most recent pid from the background_pids array
+ * 
+ * returns: Returns the removed pid
+*/
+pid_t pop_pid() {
     return pid_stack.background_pids[pid_stack.pid_num--];
 }
 
-/// NAME: peek_pid
-/// DESC: reads top of stack
-/// SOURCE: assignment3
-pid_t peek_pid()
-{
+/**
+ * Looks at the top of the pid stack
+ * 
+ * returns: {pid_t} - The topmost background pid
+*/
+pid_t peek_pid() {
     return pid_stack.background_pids[pid_stack.pid_num];
 }
 
-/// NAME: KillBGProcesses
-/// DESC: helper function for exting.
-/// SOURCE: assignment3
-void kill_server(int sig)
-{
+/**
+ * Helper function that will kill the background processes that exist in the pid_stack
+ * 
+ * sig: The passed in signal number
+*/
+void kill_server(int sig) {
     int i;
-    for(i = 0;i < pid_stack.pid_num + 1;i++){
-        kill(pid_stack.background_pids[i], SIGINT); // interrupt all bg pids.
+    for(i = 0; i < pid_stack.pid_num + 1; i++) {
+		// Send SIGINT signal to all background processes that were
+		// started by this program
+        kill(pid_stack.background_pids[i], SIGINT);
     }
 }
 
-//Brewster error function.
-void error(const char *msg) { perror(msg); exit(1); } // Error function used for reporting issues
+/**
+ * Professor provided error function
+ * 
+ * msg: Body of the error message to be outputted
+*/
+void error (const char * msg) { 
+	perror(msg); 
+	exit(1); 
+}
 
-/// NAME: SpecificError
-/// DESC: My error function that prints program name at beginning.
-void SpecificError(const char* msg) 
-{
-	fprintf(stderr,"%s: %s\n",PROGRAM_NAME,msg);
+/**
+ * General error helper function that will output the error with program name
+ * 
+ * msg: The body of the error message to be outputted
+*/
+void err_helper(const char * msg) {
+	fprintf(stderr, "%s: %s\n", PROGRAM_NAME, msg);
 	exit(1);
 }
 
-/// NAME: decrypt_text
-/// DESC: decrpt text with key text.
-char * decrypt_text(char* Key,char* Text)
-{
+/**
+ * Decrypts the text using the key provided
+ * 
+ * key: {char *} - The string representing the cipher key
+ * text: {char *} - The string representing the text to encrypt
+ * 
+ * returns: {char *} - Returns a copy of the encrypted text blob
+*/
+char * decrypt_text(char * key, char * text) {
+	int tmp_key;
+	int tmp_text;
+	int length = strlen(text);
+	char encrypted_text[FILE_SIZE];
 	int i;
-	int keytemp,texttemp;
-	int length = strlen(Text);
-	char EncryptionStr[FILE_SIZE];
-	memset(EncryptionStr,'\0',sizeof(EncryptionStr));//setup buffer
 
-	for(i = 0;i < length; i++){//iterate through all chars.
-		if(Text[i] == '?'){
-			EncryptionStr[i] = ' ';// replace ? with spaces
-		}
-		else{
-			keytemp = (int)Key[i];
-			texttemp = (int)Text[i];
-			// take char int values and subtract them.
-			EncryptionStr[i] = (char)(texttemp - (keytemp % 3));
+	memset(encrypted_text, '\0', sizeof(encrypted_text));
+
+	for(i = 0; i < length; i++) {
+		if(text[i] == '?'){
+			encrypted_text[i] = ' ';
+		} else{
+			tmp_key = (int) key[i];
+			tmp_t ext = (int) text[i];
+			encrypted_text[i] = (char)(tmp_text - (tmp_key % 3));
 		}
 	}
 
-	//return new encryption.
-	return strdup(EncryptionStr);
+	return strdup(encrypted_text);
 }
 
-int main(int argc, char *argv[])
-{
-	//initialization.
+int main(int argc, char *argv[]) {
+	// Allocate and initialize pid tracking with stack
 	init_pid_stack();
-	signal(SIGINT,kill_server);//handler to kill bg pids.
+	signal(SIGINT, kill_server);//handler to kill bg pids.
 
-	//vars.
 	char FileBufferKey[FILE_SIZE];
 	char FileBuffertext[FILE_SIZE];
 	char * EncryptionBuffer;
@@ -130,8 +146,10 @@ int main(int argc, char *argv[])
 	char buffer[256];
 	struct sockaddr_in serverAddress, clientAddress;
 
-	if (argc < 2) { fprintf(stderr,"USAGE: %s port\n", argv[0]); exit(1); } // Check usage & args
-
+	if (argc < 2) { 
+		fprintf(stderr,"USAGE: %s port\n", argv[0]); 
+		exit(1); 
+	} 
 	// Set up the address struct for this process (the server)
 	memset((char *)&serverAddress, '\0', sizeof(serverAddress)); // Clear out the address struct
 	portNumber = atoi(argv[1]); // Get the port number, convert to an integer from a string
@@ -152,17 +170,15 @@ int main(int argc, char *argv[])
 	listen(listenSocketFD, 5); // Flip the socket on - it can now receive up to 5 connections
 	sizeOfClientInfo = sizeof(clientAddress); // Get the size of the address for the client that will connect
 
-	while(1)
-	{
+	while(1) {
 		// Accept a connection, blocking if one is not available until one connects
-		establishedConnectionFD = accept(listenSocketFD, (struct sockaddr *)&clientAddress, &sizeOfClientInfo); // Accept
+		establishedConnectionFD = accept(listenSocketFD, (struct sockaddr *)&clientAddress, &sizeOfClientInfo);
 		if (establishedConnectionFD < 0) error("ERROR on accept");
 
 		pid_t pid = fork();
-		switch(pid)
-		{
+		switch(pid) {
 			case -1:
-				SpecificError("Child fork error.");
+				err_helper("Child fork error.");
 			case 0://child.
 
 				//check the client for 'D'ecryption type.
@@ -170,37 +186,30 @@ int main(int argc, char *argv[])
 				if(clienttype != AcceptedClientType){//if not matching client send no connection.
 					charResponse = 'N';
 					send(establishedConnectionFD,&charResponse,sizeof(char),0);
-					SpecificError("Invalid client connection.");//error
-				}
-				else{
+					err_helper("Invalid client connection.");//error
+				} else {
 					//send accept client.
 					charResponse = 'Y';
 					send(establishedConnectionFD,&charResponse,sizeof(char),0);
 				}
 
 				recv(establishedConnectionFD,&FileLength,sizeof(FileLength),0);
-				//printf(":::%d\n",FileLength);
 
 				memset(FileBufferKey,'\0',sizeof(FileBufferKey));
 				memset(FileBuffertext,'\0',sizeof(FileBuffertext));
 
-				//begin reading in File
-				recv(establishedConnectionFD,FileBufferKey, FileLength * sizeof(char),0);//keyfile
-				recv(establishedConnectionFD,FileBuffertext,FileLength * sizeof(char),0);//textfile.
-				EncryptionBuffer = decrypt_text(FileBufferKey,FileBuffertext);//decrpt files.
+				recv(establishedConnectionFD,FileBufferKey, FileLength * sizeof(char),0);
+				recv(establishedConnectionFD,FileBuffertext,FileLength * sizeof(char),0);
+				EncryptionBuffer = decrypt_text(FileBufferKey,FileBuffertext);
 
-				//send encryption text back to client and close descriptor.
 				send(establishedConnectionFD,EncryptionBuffer,FileLength * sizeof(char),0);
 				shutdown(establishedConnectionFD,2);
 
 				exit(0);
-			default://parent
-				//add to 5 possible processes.
+			default:
 				push_pid(pid);
 		}
-
 	}
-
 
 	return 0; 
 }
