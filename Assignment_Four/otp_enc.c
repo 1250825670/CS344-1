@@ -91,43 +91,45 @@ file_data_obj * create_encryption_obj(char ** argv) {
 */
 char * file_content_validate(file_data_obj * file_obj, char fd) {
 	int i;
-	int FileDescriptor;
+	int file_description;
 	char * fileContent = malloc( file_obj->file_length * sizeof(char*));
 	int buff;
 
 	//conditionsal for which file descriptor we are using.
 	if(fd == 'K'){
-		FileDescriptor = file_obj->key;
+		file_description = file_obj->key;
 	}
 	else if(fd == 'T'){
-		FileDescriptor = file_obj->text;
+		file_description = file_obj->text;
 	}
 
-	//check if file can be opened.
-	if(read(FileDescriptor,fileContent,file_obj->file_length) < 0){ // redundant.
-		err_helper("Couldnt open raw_text file");
+	if(read(file_description,fileContent,file_obj->file_length) < 0){ // redundant.
+		err_helper("Couldnt open raw_text file!");
 	}
 
-	// validate the contents of file is within A-Z or is a space.
 	for(i = 0; i < file_obj->file_length; i++){
 		buff = (fileContent[i]);
 		if( !(buff == ' ' || (buff >= 'A' && buff <= 'Z')) ){
-			err_helper("Invalid character in a file.");
+			err_helper("Invalid character in a file!");
 		}
 
 	}
-	// return an address to it in the heap.
+
+	// Returns a reference 
 	return fileContent;
 }
 
-/// NAME: clear_encryption_obj
-/// DESC: Clean up function for file descriptors.
+/**
+ * Clear the data tied to the file_obj struct
+ * 
+ * file_obj: {struct file_data_obj} - The file_obj whose fields will be cleared
+*/
 void clear_encryption_obj(file_data_obj * file_obj) {
-	// close desciptors.
+	// Close files tied to the file_obj
 	close(file_obj->text);
 	close(file_obj->key);
 
-	//set to invalid num to be overwritten.
+	// Assign dummy values to clear them
 	file_obj->text = -1;
 	file_obj->key = -1;
 }

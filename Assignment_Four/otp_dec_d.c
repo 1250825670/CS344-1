@@ -14,9 +14,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdbool.h>
-#define MAX_STACK_LENGTH 5
+
 #define FILE_SIZE 70000
 #define MAX_BUFF 256
+#define MAX_STACK_LENGTH 5
 
 struct pid_tracker {
     int pid_num;
@@ -75,9 +76,7 @@ pid_t peek_pid() {
 */
 void kill_server(int sig) {
     int i;
-    for(i = 0; i < pid_stack.pid_num + 1; i++) {
-		// Send SIGINT signal to all background processes that were
-		// started by this program
+    for (i = 0; i < pid_stack.pid_num + 1; i++) {
         kill(pid_stack.background_pids[i], SIGINT);
     }
 }
@@ -153,48 +152,46 @@ int main (int argc, char * argv[]) {
 	int listening_sock_file_description;
 	int connection_file_description;
 	char response;
-	int charsRead; 
 	int file_len;
-	int portNumber;
+	int port_num;
 
 	socklen_t client_data_size;
 	char buffer[MAX_BUFF];
-	struct sockaddr_in serverAddress, clientAddress;
+	struct sockaddr_in server_addr, client_addr;
 
 	if (argc < 2) { 
 		fprintf(stderr,"USAGE: %s port\n", argv[0]); 
 		exit(1); 
 	} 
 
-	memset((char *) &serverAddress, '\0', sizeof(serverAddress));
+	memset((char *) &server_addr, '\0', sizeof(server_addr));
 	// Parse out the port number
-	portNumber = atoi(argv[1]);
+	port_num = atoi(argv[1]);
 
 	// Configure and create the socket connection
-	serverAddress.sin_family = AF_INET;
-	serverAddress.sin_addr.s_addr = INADDR_ANY;
-	serverAddress.sin_port = htons(portNumber);
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_addr.s_addr = INADDR_ANY;
+	server_addr.sin_port = htons(port_num);
 	listening_sock_file_description = socket(AF_INET, SOCK_STREAM, 0);
 
-	if (listening_sock_file_description < 0) { 
+	if (listening_sock_file_description < 0) {
 		error("ERROR opening socket!");
 	}
 
 	// Bind the socket to begin listening to the port
-	if (bind(listening_sock_file_description, (struct sockaddr *) &serverAddress, sizeof(serverAddress)) < 0) {
+	if (bind(listening_sock_file_description, (struct sockaddr *) &server_addr, sizeof(server_addr)) < 0) {
 		error("ERROR could not bind to the port!");
 	}
 
 	listen(listening_sock_file_description, MAX_STACK_LENGTH); // Flip the socket on - it can now receive up to 5 connections
-	client_data_size = sizeof(clientAddress); // Get the size of the address for the client that will connect
+	client_data_size = sizeof(client_addr); // Get the size of the address for the client that will connect
 
 	while(1) {
 		// Attempts a connection followed by an error check if it fails
-		connection_file_description = accept(listening_sock_file_description, (struct sockaddr *) &clientAddress, &client_data_size);
+		connection_file_description = accept(listening_sock_file_description, (struct sockaddr *) &client_addr, &client_data_size);
 		if (connection_file_description < 0) {
 			error("ERROR on accept!");
 		}
-
 
 		pid_t pid = fork();
 
@@ -202,7 +199,7 @@ int main (int argc, char * argv[]) {
 			case -1:
 				err_helper("Child fork was not created");
 			case 0:
-				//check the client for 'D'ecryption type.
+				// Validating client connection
 				recv(connection_file_description, &clienttype, sizeof(char), 0);
 				if (clienttype != proper_client_type) {
 					response = 'N';

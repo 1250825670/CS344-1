@@ -39,8 +39,11 @@ void error(const char * msg) {
 	exit(0);
 } 
 
-/// NAME: err_helper
-/// DESC: My error function that prints program name at beginning.
+/**
+ * Helper function that outputs error message with program name prepended
+ * 
+ * msg: Body of the error message
+*/
 void err_helper(const char * msg) {
 	fprintf(stderr, "%s: %s\n", PROGRAM_NAME, msg);
 	exit(1);
@@ -81,33 +84,37 @@ file_data_obj * create_encryption_obj(char ** argv) {
 /**
  * Opens and returns a file's contents
  * 
- * Obj: {struct file_data_obj *} - Pointer to the file_data_obj
- * fd: 
+ * obj: {struct file_data_obj *} - Pointer to the file_data_obj
+ * file_mode: Denotes which file to return, key or text body
  * 
+ * returns: {char *} - 
 */
-char * read_file(file_data_obj* obj, char fd) {
-	int i, file_description;
-	char * fileContent = malloc( obj->file_length * sizeof(char*));
-	int Buffer;
+char * read_file(file_data_obj * obj, char file_mode) {
+	int i;
+	int file_description;
+	char * file_text = malloc( obj->file_length * sizeof(char*));
+	int buff;
 
 	//conditionsal for which file descriptor we are using.
-	if(fd == 'K'){
+	if(file_mode == 'K'){
 		file_description = obj->key;
-	}
-	else if(fd == 'T'){
+	} else if (file_mode == 'T'){
 		file_description = obj->text;
 	}
 
 	// read content of file and return an address to it in the heap.
-	if(read(file_description, fileContent,obj->file_length) < 0) {
-		err_helper("Couldnt open text file");
+	if(read(file_description, file_text, obj->file_length) < 0) {
+		err_helper("Couldn't open text file!");
 	}
-	return fileContent;
+	return file_text;
 }
 
-/// NAME: close_encrypt_file_description
-/// DESC: Clean up function for file descriptors.
-void close_encrypt_file_description(file_data_obj * obj) {
+/**
+ * Clear the data tied to the file_obj struct
+ * 
+ * file_obj: {struct file_data_obj} - The file_obj whose fields will be cleared
+*/
+void clear_encryption_obj(file_data_obj * obj) {
 	//close desciptors.
 	close(obj->text);
 	close(obj->key);
@@ -117,10 +124,12 @@ void close_encrypt_file_description(file_data_obj * obj) {
 	obj->key = -1;
 }
 
-/// NAME: get_encryption_file_obj_file_length
-/// DESC: checks if key file is longer than text then sets struct file length.
 /**
+ * Finds the encrypted file's length and returns it
  * 
+ * obj: {struct file_data_obj *} - Pointer to the file_data_obj that length will be called on
+ * 
+ * returns: {Integer} - The length of the file's length
 */
 int get_encryption_file_obj_file_length(file_data_obj * obj) {
 	struct stat key;
@@ -155,19 +164,21 @@ int main (int argc, char* argv[]) {
 	int sock_file_description;
 	int port_num;
 	struct sockaddr_in server_addr;
-	struct hostent* serverHostInfo;
-	char buffer[BUFF_SIZE];
+	struct hostent * host_info;
     
-	//validate args and prep file_data struct.
-	validArgc(argc);
-	file_data_obj* file_data = create_encryption_obj(argv);
+	if (argc == 3) {
+        err_helper("Invalid number of arguments.");
+        exit(1);
+    }
+
+	file_data_obj * file_data = create_encryption_obj(argv);
 	get_encryption_file_obj_file_length(file_data);
 
 	// Parsing key and text contents
 	char * key_text = read_file(file_data, 'K');
 	char * response_text = malloc(file_data->file_length * sizeof(char*));
 	char * raw_text= read_file(file_data, 'T');
-	char serverAccept;
+	char response_code;
 	char file_length[128];
 
 	memset((char*) &server_addr, '\0', sizeof(server_addr));
@@ -176,12 +187,12 @@ int main (int argc, char* argv[]) {
 	server_addr.sin_port = htons(port_num);
 
 	// only connections on your current machine.
-	serverHostInfo = gethostbyname("localhost");
-	if (serverHostInfo == NULL) { 
+	host_info = gethostbyname("localhost");
+	if (host_info == NULL) { 
 		fprintf(stderr, "CLIENT: ERROR, no such host\n");
 		exit(1);
 	}
-	memcpy((char*)&server_addr.sin_addr.s_addr, (char*) serverHostInfo->h_addr, serverHostInfo->h_length); // Copy in the address
+	memcpy((char*)&server_addr.sin_addr.s_addr, (char*) host_info->h_addr, host_info->h_length); // Copy in the address
 
 	// Set up the socket
 	sock_file_description = socket(AF_INET, SOCK_STREAM, 0); // Create the socket
@@ -194,30 +205,28 @@ int main (int argc, char* argv[]) {
 	 	error("CLIENT: ERROR connecting");
 	}
 
+	send(sock_file_description, &(PROGRAM_NAME[0]), sizeof(char), 0);
+	recv(sock_file_description, &response_code, sizeof(char), 0);
 
-	// Logging into the server
-	send(sock_file_description, &(PROGRAM_NAME[0]), sizeof(char), 0);//send client info D for decrption client.
-	recv(sock_file_description, &serverAccept, sizeof(char), 0);// get Y or N for matching server.
-
-	if(serverAccept != 'Y'){
-		close(sock_file_description); // if not valid exit.
-		err_helper("not an Decryption server.");
+	if (response_code != 'Y') {
+		close(sock_file_description);
+		err_helper("not a server that decrypts");
 	}
 
-	// transmitting file data to the server
+	// Sending data
 	send(sock_file_description, &(file_data->file_length), sizeof(file_data->file_length), 0);
 	send(sock_file_description, key_text, file_data->file_length * sizeof(char), 0);
 	send(sock_file_description, raw_text, file_data->file_length * sizeof(char), 0);
 
 	// 
-	recv(sock_file_description, response_text, file_data->file_length * sizeof(char), 0);//retrive decrypted text.
+	recv(sock_file_description, response_text, file_data->file_length * sizeof(char), 0);
 	printf("%s\n", response_text);
 
 	// Deallocating the memory dynamically allocated
-	close_encrypt_file_description(file_data);
-	free(key_text);
+	clear_encryption_obj(file_data);
 	free(raw_text);
 	free(response_text);
+	free(key_text);
 	free(file_data);
 
 	return 0;
