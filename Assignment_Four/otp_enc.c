@@ -25,11 +25,12 @@ char * PROGRAM_NAME = "ENC_CLIENT";
 struct file_data_obj {
 	int key;
 	int text;
-	int file_length;
 	char * key_filename;
 	char * text_filename;
+	int file_length;
 };
 
+// Defining struct so I can avoid including struct keyword
 typedef struct file_data_obj file_data_obj;
 
 /**
@@ -95,7 +96,7 @@ char * file_content_validate(file_data_obj * file_obj, char fd) {
 	char * fileContent = malloc( file_obj->file_length * sizeof(char*));
 	int buff;
 
-	//conditionsal for which file descriptor we are using.
+	// Checking which file content to populate into file_description
 	if(fd == 'K'){
 		file_description = file_obj->key;
 	}
@@ -103,7 +104,7 @@ char * file_content_validate(file_data_obj * file_obj, char fd) {
 		file_description = file_obj->text;
 	}
 
-	if(read(file_description,fileContent,file_obj->file_length) < 0){ // redundant.
+	if(read(file_description,fileContent,file_obj->file_length) < 0) {
 		err_helper("Couldnt open raw_text file!");
 	}
 
@@ -172,7 +173,7 @@ int main(int argc, char * argv[]) {
 	int sock_file_description;
 	int port_num;
 	struct sockaddr_in server_addr;
-	struct hostent * serverHostInfo;
+	struct hostent * host_info;
 	char buff[BUFF_SIZE];
     
 	if (argc == 3) {
@@ -180,13 +181,13 @@ int main(int argc, char * argv[]) {
         exit(1);
     }
 
-	file_data_obj * FileInfo = create_encryption_obj(argv);
-	get_encrypted_file_length(FileInfo);
+	file_data_obj * file_data = create_encryption_obj(argv);
+	get_encrypted_file_length(file_data);
 
-	char * key_text = file_content_validate(FileInfo,'K');
-	char * response_text = malloc( FileInfo->file_length * sizeof(char*));
-	char * raw_text= file_content_validate(FileInfo,'T');
-	char serverAccept;
+	char * key_text = file_content_validate(file_data,'K');
+	char * response_text = malloc( file_data->file_length * sizeof(char*));
+	char * raw_text= file_content_validate(file_data,'T');
+	char response_code;
 	char file_length[128];
 
 	// Set up the server address struct
@@ -195,13 +196,12 @@ int main(int argc, char * argv[]) {
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = htons(port_num);
 
-	// only connections on your current machine.
-	serverHostInfo = gethostbyname("localhost");
-	if (serverHostInfo == NULL) { 
+	host_info = gethostbyname("localhost");
+	if (host_info == NULL) { 
 		fprintf(stderr, "CLIENT: ERROR, no such host\n");
 		exit(1);
 	}
-	memcpy((char*) &server_addr.sin_addr.s_addr, (char*) serverHostInfo->h_addr, serverHostInfo->h_length);
+	memcpy((char*) &server_addr.sin_addr.s_addr, (char*) host_info->h_addr, host_info->h_length);
 
 	// Create and configure the socket
 	sock_file_description = socket(AF_INET, SOCK_STREAM, 0);
@@ -215,27 +215,27 @@ int main(int argc, char * argv[]) {
 	}
 
 	send(sock_file_description, &(PROGRAM_NAME[0]), sizeof(char), 0);
-	recv(sock_file_description, &serverAccept, sizeof(char), 0);
-	if(serverAccept != 'Y'){
+	recv(sock_file_description, &response_code, sizeof(char), 0);
+	if(response_code != 'Y'){
 		close(sock_file_description);
 		err_helper("not an encryption server.");
 	}
 
-	//sending data to server.
-	send(sock_file_description, &(FileInfo->file_length), sizeof(FileInfo->file_length), 0);//send int of file length.
-	send(sock_file_description, key_text,FileInfo->file_length * sizeof(char), 0); // send key text.
-	send(sock_file_description, raw_text,FileInfo->file_length * sizeof(char), 0); // send mesage text.
+	// Transmitting data
+	send(sock_file_description, &(file_data->file_length), sizeof(file_data->file_length), 0);
+	send(sock_file_description, key_text,file_data->file_length * sizeof(char), 0);
+	send(sock_file_description, raw_text,file_data->file_length * sizeof(char), 0);
 
-	//recieving data from server.
-	recv(sock_file_description,response_text, FileInfo->file_length * sizeof(char), 0); //retrive encrpyted text.
+	// Retrieving the data
+	recv(sock_file_description, response_text, file_data->file_length * sizeof(char), 0);
 	printf("%s\n", response_text);
 
-	//freeing data.
-	clear_encryption_obj(FileInfo);
+	// Cleaning up the dynamically allocated memory
+	clear_encryption_obj(file_data);
 	free(key_text);
 	free(raw_text);
 	free(response_text);
-	free(FileInfo);
+	free(file_data);
 
 	return 0;
 }
